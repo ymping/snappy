@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"github.com/cosiner/flag"
 	"github.com/golang/snappy"
 	"io/ioutil"
@@ -15,7 +14,7 @@ import (
 type Client struct {
 	Create      bool     `names:"-c" usage:"Compression file to snappy format"`
 	Extract     bool     `names:"-x" usage:"Decompression snappy format file"`
-	Silent      bool     `names:"-s, --silent" usage:"Silent mode" default:"false"`
+	Verbose     bool     `names:"-v, --verbose" usage:"Verbose mode" default:"false"`
 	SourceFiles []string `names:"-f, --file" args:"true" usage:"Files to compression/decompression"`
 	OutputDir   string   `names:"-o, --output" usage:"Output directory"`
 }
@@ -68,8 +67,7 @@ func (c *Client) ParameterCheck() (bool, error) {
 func (c *Client) run() {
 	_, err := c.ParameterCheck()
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	c.ParseOutputDir()
@@ -78,15 +76,14 @@ func (c *Client) run() {
 	} else if c.Extract {
 		c.Unsnappy()
 	} else {
-		fmt.Println("unsupported operation")
+		log.Fatal("unsupported operation, exit")
 	}
 }
 
 func (c *Client) ParseOutputDir() {
 	wd, err := os.Getwd()
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 	if c.OutputDir == "" {
 		c.OutputDir = wd
@@ -94,7 +91,10 @@ func (c *Client) ParseOutputDir() {
 
 	_, err = os.Stat(c.OutputDir)
 	if os.IsNotExist(err) {
-		os.MkdirAll(c.OutputDir, os.ModePerm)
+		err = os.MkdirAll(c.OutputDir, os.ModePerm)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
@@ -118,14 +118,14 @@ func (c *Client) Snappy() {
 	for _, f := range c.SourceFiles {
 		content, err := ioutil.ReadFile(f)
 		if err != nil {
-			fmt.Println(err)
+			log.Error(err)
 			continue
 		}
 		encoded := snappy.Encode(nil, content)
 		fullFilename := path.Join(c.OutputDir, c.GetOutputFilename(f))
 		err = ioutil.WriteFile(fullFilename, encoded, 0644)
 		if err != nil {
-			fmt.Println(err)
+			log.Error(err)
 			continue
 		}
 	}
@@ -135,18 +135,18 @@ func (c *Client) Unsnappy() {
 	for _, f := range c.SourceFiles {
 		content, err := ioutil.ReadFile(f)
 		if err != nil {
-			fmt.Println(err)
+			log.Error(err)
 			continue
 		}
 		decoded, err := snappy.Decode(nil, content)
 		if err != nil {
-			fmt.Println(err)
+			log.Error(err)
 			continue
 		}
 		fullFilename := path.Join(c.OutputDir, c.GetOutputFilename(f))
 		err = ioutil.WriteFile(fullFilename, decoded, 0644)
 		if err != nil {
-			fmt.Println(err)
+			log.Error(err)
 			continue
 		}
 	}
