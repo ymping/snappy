@@ -130,6 +130,7 @@ func (c *Client) Snappy() {
 		}
 	}
 }
+
 func (c *Client) Unsnappy() {
 	for _, f := range c.SourceFiles {
 		content, err := ioutil.ReadFile(f)
